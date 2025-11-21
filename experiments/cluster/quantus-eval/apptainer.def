@@ -1,0 +1,13 @@
+Bootstrap: docker
+From: python:3.12
+
+%files
+    $PWD/requirements.txt requirements.txt
+    $PWD/pyproject.toml pyproject.toml
+    $PWD/uv.lock uv.lock
+
+%post
+    chmod 1777 /tmp
+    # Preliminary: use uv to create `requirements.txt` via
+    # `uv export --format requirements-txt --output-file requirements.txt`
+    pip install --root-user-action=ignore -r requirements.txt

@@ -1,0 +1,27 @@
+Bootstrap: docker
+From: julia:1.11.4
+
+%files
+    $PWD/Project.toml Project.toml
+    $PWD/Manifest.toml Manifest.toml
+    ~/dev/SmoothDiff/.git ~/dev/SmoothedDifferentiation/.git
+    ~/dev/SmoothDiff/julia/src ~/dev/SmoothedDifferentiation/src
+    ~/dev/SmoothDiff/julia/Project.toml ~/dev/SmoothedDifferentiation/Project.toml
+    $PWD/../../heatmaps/data/input_batch.jld2 input_batch.jld2
+
+%post
+    julia --startup-file=no --project --color=yes -e '
+	using Pkg; 
+	Pkg.instantiate(); 
+	Pkg.precompile();
+	Pkg.status();
+
+	## Hotfix for Metalhead compatibility
+	using Flux;
+	import Flux: loadmodel!;
+	loadmodel!(dst::MaxPool{N,M}, src::Tuple{}; kw...) where {N,M} = dst;
+	
+	## Run Metalhead to load model artefacts
+	using Metalhead;
+	VGG(19; pretrain=true);
+	'
