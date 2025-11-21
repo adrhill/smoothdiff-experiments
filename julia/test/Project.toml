@@ -1,0 +1,12 @@
+[deps]
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
+Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
+JLArrays = "27aeb0d3-9eb9-45fb-866b-73c2ecf80fcb"
+MLUtils = "f1d291b0-491e-4a28-83b9-f70985020b54"
+Metal = "dde4c033-4e86-420c-a63e-0dd931031962"
+Metalhead = "dbeba491-748d-5e0e-a39e-b530a07fa0cc"
+NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+XAIBase = "9b48221d-a747-4c1b-9860-46a1d8ba24a7"
