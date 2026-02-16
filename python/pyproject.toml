@@ -1,21 +1,20 @@
 [project]
-name = "SmoothDiff-Notebook"
+name = "smoothdiff-torch"
 version = "0.1.0"
-description = "Virtual environment for the SmoothDiff Demo in Python."
+description = "SmoothDiff for PyTorch."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "cmcrameri>=1.9",
-    "matplotlib>=3.10.3",
-    "numpy>=2.3.2",
-    "pathlib>=1.0.1",
-    "pillow>=11.3.0",
     "torch>=2.7.1",
-    "torchvision>=0.22.1",
-    "tqdm>=4.67.1",
 ]
 
-[dependency-groups]
-dev = [
+[project.optional-dependencies]
+notebook = [
+    "cmcrameri>=1.9",
     "ipykernel>=6.30.0",
+    "matplotlib>=3.10.3",
+    "numpy>=2.3.2",
+    "pillow>=11.3.0",
+    "torchvision>=0.22.1",
+    "tqdm>=4.67.1",
 ]
