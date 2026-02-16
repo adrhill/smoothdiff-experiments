@@ -22,6 +22,10 @@ Code for the NeurIPS 2025 paper *"Smoothed Differentiation Efficiently Mitigates
 
 ## Experiments
 
+> [!NOTE]
+> The experiment code refers to the state of the repository at the time of publication.
+> See the [`neurips25`](https://github.com/adrhill/smoothdiff-experiments/tree/neurips25) tag for the exact code used in the paper.
+
 We provide all code and virtual environments required to reproduce our experiments and figures.
 
 ### Running experiments
