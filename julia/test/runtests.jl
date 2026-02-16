@@ -11,6 +11,10 @@ using JET
         JET.test_package(SmoothedDifferentiation; target_defined_modules = true)
     end
 
+    @testset "VEJP numerical tests" begin
+        include("test_vejp.jl")
+    end
+
     @testset "Flux" begin
         @testset "VGG preparation tests" begin
             include("test_preparation_flux.jl")
