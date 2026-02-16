@@ -1,7 +1,8 @@
+import copy
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import copy
 
 SUPPORTED_LAYERS = {
     nn.Conv2d,
@@ -29,15 +30,14 @@ class SmoothReLUFunction(torch.autograd.Function):
         return x.clamp(min=0)
 
     @staticmethod
-    def backward(ctx, grad_output):
+    def backward(ctx, grad_output):  # type: ignore[override]
         if ctx.smooth_backward:
             assert ctx.n_samples > 0
             (grad_local_summed,) = ctx.saved_tensors
             smooth_grad = grad_local_summed / ctx.n_samples.item()
             return grad_output * smooth_grad, None, None, None, None
-        else:
-            (x,) = ctx.saved_tensors
-            return grad_output * (x > 0), None, None, None, None
+        (x,) = ctx.saved_tensors
+        return grad_output * (x > 0), None, None, None, None
 
 
 class SmoothMaxPool2dFunction(torch.autograd.Function):
@@ -78,7 +78,7 @@ class SmoothMaxPool2dFunction(torch.autograd.Function):
         unfolded = unfolded.view(x.size(0), x.size(1), kernel_size**2, -1)
 
         # Max pooling over patches
-        max_vals, max_indices = unfolded.max(dim=2, keepdims=True)
+        max_vals, max_indices = unfolded.max(dim=2, keepdims=True)  # type: ignore[call-overload]
 
         with torch.no_grad():
             # Compute mask of max values
@@ -110,7 +110,7 @@ class SmoothMaxPool2dFunction(torch.autograd.Function):
         return max_vals.view(x.size(0), x.size(1), output_h, output_w)
 
     @staticmethod
-    def backward(ctx, grad_output):
+    def backward(ctx, grad_output):  # type: ignore[override]
         N, C, H, W = ctx.input_shape
 
         if ctx.smooth_backward:
@@ -148,7 +148,7 @@ class SmoothDiffLayer(nn.Module):
 
     def reset_stats(self):
         self.grad_local_summed = None
-        self.n_samples.zero_()
+        self.n_samples.zero_()  # type: ignore[union-attr]
 
     def forward(self, x):
         raise NotImplementedError("Must be implemented in subclass")
@@ -230,8 +230,7 @@ def smooth_layer(l):
 
 
 def check_supported_layers(model: nn.Module):
-    """
-    Check whether all layers in a PyTorch model are supported by SmoothDiff.
+    """Check whether all layers in a PyTorch model are supported by SmoothDiff.
     Raise an error if any unsupported layer is found.
     """
 
@@ -255,9 +254,7 @@ def check_supported_layers(model: nn.Module):
 
 
 def replace_nonlinear_layers(model):
-    """
-    Recursively replace ReLU and MaxPool2d layers in any PyTorch model.
-    """
+    """Recursively replace ReLU and MaxPool2d layers in any PyTorch model."""
     # Create a copy of the model to avoid modifying the original
     check_supported_layers(model)
     model_copy = copy.deepcopy(model)

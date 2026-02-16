@@ -27,9 +27,13 @@ examples = [
 addopts = "--tb=short -q --no-header"
 testpaths = ["tests"]
 
+[tool.ty.src]
+exclude = ["examples"]
+
 [tool.ruff]
 line-length = 88
 target-version = "py311"
+extend-exclude = ["examples"]
 
 [tool.ruff.lint]
 select = [

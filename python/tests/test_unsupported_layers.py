@@ -1,5 +1,6 @@
 import pytest
 import torch.nn as nn
+
 from smoothdiff_torch.smoothdiff import check_supported_layers
 
 
@@ -10,7 +11,7 @@ def test_unsupported_layer_raises():
         nn.MultiheadAttention(64, num_heads=4),
         nn.GELU(),
     )
-    with pytest.raises(ValueError, match="Unsupported layer type.*LayerNorm"):
+    with pytest.raises(ValueError, match=r"Unsupported layer type.*LayerNorm"):
         check_supported_layers(vit_block)
 
 
