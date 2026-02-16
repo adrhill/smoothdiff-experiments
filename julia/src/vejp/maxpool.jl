@@ -29,10 +29,10 @@ Flux.@layer MaxPoolAccumulator trainable = ()
 # Custom VJP computing VeJP
 function rrule(m::MaxPoolAccumulator, x)
     y = m(x)
-    function modified_maxpool_pullback(ȳ)
-        ȳ_expanded = upsample_nearest(ȳ, m.layer.stride)
+    function modified_maxpool_pullback(ȳ)
+        ȳ_expanded = upsample_nearest(unthunk(ȳ), m.layer.stride)
         J = convert.(Float32, m.count) / m.n
-        x̄ = J .* ȳ_expanded
+        x̄ = J .* ȳ_expanded
         return (NoTangent(), x̄)
     end
     return y, modified_maxpool_pullback

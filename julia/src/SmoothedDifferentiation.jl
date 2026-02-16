@@ -11,7 +11,7 @@ using ProgressMeter: Progress, next!
 
 using NNlib: relu, ∇maxpool, maxpool, upsample_nearest, σ, softplus
 using Zygote: pullback
-import ChainRulesCore: rrule, NoTangent
+import ChainRulesCore: rrule, NoTangent, unthunk
 
 using Flux: Flux
 
