@@ -1,5 +1,8 @@
+"""Tests for the ReLU VEJP."""
+
 import torch
-from smoothdiff_torch.smoothdiff import SmoothReLU
+
+from smoothdiff_torch.smoothdiff import _SmoothReLU
 
 
 def test_relu_vejp():
@@ -17,7 +20,7 @@ def test_relu_vejp():
     ]
     test_input = torch.tensor([1.0, 1.0, 1.0, 1.0, 1.0], requires_grad=True)
 
-    layer = SmoothReLU()
+    layer = _SmoothReLU()
     layer.reset_stats()
 
     # Phase 1: Collect stats
@@ -33,6 +36,6 @@ def test_relu_vejp():
     output.sum().backward()
 
     expected = torch.tensor([1.0, 0.75, 0.5, 0.25, 0.0])
-    assert torch.allclose(test_input.grad, expected), (
+    assert torch.allclose(test_input.grad, expected), (  # type: ignore[arg-type]
         f"Expected {expected}, got {test_input.grad}"
     )

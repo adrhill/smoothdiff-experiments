@@ -1,5 +1,8 @@
+"""Tests for the MaxPool2d VEJP."""
+
 import torch
-from smoothdiff_torch.smoothdiff import SmoothMaxPool2d
+
+from smoothdiff_torch.smoothdiff import _SmoothMaxPool2d
 
 
 def test_maxpool2d_vejp():
@@ -21,11 +24,9 @@ def test_maxpool2d_vejp():
         # max at (0,1)
         torch.tensor([[[[0.0, 1.0], [0.0, 0.0]]]]),
     ]
-    test_input = torch.tensor(
-        [[[[1.0, 1.0], [1.0, 1.0]]]], requires_grad=True
-    )
+    test_input = torch.tensor([[[[1.0, 1.0], [1.0, 1.0]]]], requires_grad=True)
 
-    layer = SmoothMaxPool2d(kernel_size=2, stride=2, padding=0)
+    layer = _SmoothMaxPool2d(kernel_size=2, stride=2, padding=0)
     layer.reset_stats()
 
     # Phase 1: Collect stats
@@ -41,6 +42,6 @@ def test_maxpool2d_vejp():
     output.sum().backward()
 
     expected = torch.tensor([[[[0.75, 0.25], [0.0, 0.0]]]])
-    assert torch.allclose(test_input.grad, expected), (
+    assert torch.allclose(test_input.grad, expected), (  # type: ignore[arg-type]
         f"Expected {expected}, got {test_input.grad}"
     )
