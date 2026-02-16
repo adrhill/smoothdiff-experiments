@@ -36,7 +36,7 @@ using Zygote: pullback
     @test grad ≈ Float32[1.0, 0.8, 0.6, 0.4, 0.2]
 end
 
-@testset "MaxPool VEJP" begin
+@testset "MaxPool k=2 s=2 VEJP" begin
     # 10 inputs total (WHCN layout): 9 stats inputs + 1 pullback call.
     # kernel_size=2, stride=2 on 2x2x1x1 inputs.
     # The pullback input has a clear max at (1,1) to avoid tie-breaking differences.
@@ -47,7 +47,6 @@ end
     count = zeros(Int, 2, 2, 1, 1)
     layer = MaxPoolAccumulator(; layer = pool, count = count)
 
-    # In Julia WHCN layout: array[w, h, c, n]
     stats_inputs = [
         Float32[1 0; 0 0;;;;],  # 3x max at (1,1)
         Float32[1 0; 0 0;;;;],
@@ -69,4 +68,39 @@ end
     grad = only(vejp_fn(ones(Float32, 1, 1, 1, 1)))
 
     @test grad ≈ Float32[0.4 0.2; 0.3 0.1;;;;]
+end
+
+@testset "MaxPool k=3 s=3 VEJP" begin
+    # 10 inputs total (WHCN layout): 9 stats inputs + 1 pullback call.
+    # kernel_size=3, stride=3 on 3x3x1x1 inputs (single pool).
+    # The pullback input has a clear max at (1,1).
+    # Total count: [4 0 1; 0 3 0; 2 0 0;;;;], n = 10
+    # Expected VEJP: [0.4 0.0 0.1; 0.0 0.3 0.0; 0.2 0.0 0.0]
+
+    pool = MaxPool((3, 3); stride = (3, 3))
+    count = zeros(Int, 3, 3, 1, 1)
+    layer = MaxPoolAccumulator(; layer = pool, count = count)
+
+    # WHCN layout: [w, h, c, n]. Position (w,h) maps to Python (h-1, w-1).
+    stats_inputs = [
+        Float32[1 0 0; 0 0 0; 0 0 0;;;;],  # 3x max at (1,1) → Python (0,0)
+        Float32[1 0 0; 0 0 0; 0 0 0;;;;],
+        Float32[1 0 0; 0 0 0; 0 0 0;;;;],
+        Float32[0 0 0; 0 0 0; 1 0 0;;;;],  # 2x max at (3,1) → Python (0,2)
+        Float32[0 0 0; 0 0 0; 1 0 0;;;;],
+        Float32[0 0 0; 0 1 0; 0 0 0;;;;],  # 3x max at (2,2) → Python (1,1)
+        Float32[0 0 0; 0 1 0; 0 0 0;;;;],
+        Float32[0 0 0; 0 1 0; 0 0 0;;;;],
+        Float32[0 0 1; 0 0 0; 0 0 0;;;;],  # 1x max at (1,3) → Python (2,0)
+    ]
+    for x in stats_inputs
+        layer(x)
+    end
+
+    # pullback also triggers a forward pass (adds 1 to (1,1))
+    test_input = Float32[9 1 1; 1 1 1; 1 1 1;;;;]
+    _, vejp_fn = pullback(layer, test_input)
+    grad = only(vejp_fn(ones(Float32, 1, 1, 1, 1)))
+
+    @test grad ≈ Float32[0.4 0.0 0.1; 0.0 0.3 0.0; 0.2 0.0 0.0;;;;]
 end
