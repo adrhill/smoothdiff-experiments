@@ -10,7 +10,7 @@ reset_counts!(m::MaxPoolAccumulator) = fill!(m.count, 0)
 samplingmode!(m::MaxPoolAccumulator, mode::Bool) = (m.sampling = mode; m)
 
 # Forward pass
-function (m::MaxPoolAccumulator)(x)
+function (m::MaxPoolAccumulator)(x::AbstractArray)
     pool = m.layer
     pdims = Flux.PoolDims(x, pool.k; padding = pool.pad, stride = pool.stride)
     y = maxpool(x, pdims)
@@ -29,10 +29,10 @@ Flux.@layer MaxPoolAccumulator trainable = ()
 # Custom VJP computing VeJP
 function rrule(m::MaxPoolAccumulator, x)
     y = m(x)
-    function modified_maxpool_pullback(ȳ)
-        ȳ_expanded = upsample_nearest(ȳ, m.layer.stride)
+    function modified_maxpool_pullback(ȳ)
+        ȳ_expanded = upsample_nearest(unthunk(ȳ), m.layer.stride)
         J = convert.(Float32, m.count) / m.n
-        x̄ = J .* ȳ_expanded
+        x̄ = J .* ȳ_expanded
         return (NoTangent(), x̄)
     end
     return y, modified_maxpool_pullback
