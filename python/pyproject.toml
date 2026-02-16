@@ -9,6 +9,9 @@ dependencies = [
 ]
 
 [dependency-groups]
+test = [
+    "pytest>=8.0",
+]
 examples = [
     "cmcrameri>=1.9",
     "ipykernel>=6.30.0",
