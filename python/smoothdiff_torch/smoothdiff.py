@@ -19,7 +19,14 @@ _SUPPORTED_LAYERS = {
 
 class _SmoothReLUFunction(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, x, collect_stats, smooth_backward, grad_local_summed, n_samples):
+    def forward(
+        ctx,
+        x: torch.Tensor,
+        collect_stats: bool,
+        smooth_backward: bool,
+        grad_local_summed: torch.Tensor,
+        n_samples: torch.Tensor,
+    ) -> torch.Tensor:
         if collect_stats:
             grad_local_summed += x > 0
             n_samples += 1
@@ -32,7 +39,7 @@ class _SmoothReLUFunction(torch.autograd.Function):
         return x.clamp(min=0)
 
     @staticmethod
-    def backward(ctx, grad_output):  # type: ignore[override]
+    def backward(ctx, grad_output: torch.Tensor):  # type: ignore[override]
         if ctx.smooth_backward:
             assert ctx.n_samples > 0
             (grad_local_summed,) = ctx.saved_tensors
@@ -46,16 +53,16 @@ class _SmoothMaxPool2dFunction(torch.autograd.Function):
     @staticmethod
     def forward(
         ctx,
-        x,
-        collect_stats,
-        smooth_backward,
-        grad_local_unfolded_summed,
-        n_samples,
-        kernel_size,
-        stride,
-        padding,
-        dilation,
-    ):
+        x: torch.Tensor,
+        collect_stats: bool,
+        smooth_backward: bool,
+        grad_local_unfolded_summed: torch.Tensor | None,
+        n_samples: torch.Tensor,
+        kernel_size: int,
+        stride: int,
+        padding: int,
+        dilation: int,
+    ) -> torch.Tensor:
         assert x.ndim == 4, (
             "Input must be 4D (N, C, H, W) (for torch.nn.functional.unfold)"
         )
@@ -64,8 +71,7 @@ class _SmoothMaxPool2dFunction(torch.autograd.Function):
             " (for torch.nn.functional.unfold)"
         )
         assert type(stride) is int, (
-            "stride must be equal across dimensions"
-            " (for torch.nn.functional.unfold)"
+            "stride must be equal across dimensions (for torch.nn.functional.unfold)"
         )
         ctx.kernel_size = kernel_size
         ctx.stride = stride
@@ -96,7 +102,7 @@ class _SmoothMaxPool2dFunction(torch.autograd.Function):
             grad_local_unfolded = unfolded == max_vals
 
             if grad_local_unfolded_summed is None:
-                grad_local_unfolded_summed = 0
+                grad_local_unfolded_summed = torch.tensor(0)
             if collect_stats:
                 grad_local_unfolded_summed += grad_local_unfolded
                 n_samples += 1
@@ -109,7 +115,13 @@ class _SmoothMaxPool2dFunction(torch.autograd.Function):
             # the one-hot vectors are the local derivative:
             ctx.save_for_backward(grad_local_unfolded)
 
-        def calc_output_size(input_size, kernel_size, stride, padding, dilation):
+        def calc_output_size(
+            input_size: int,
+            kernel_size: int,
+            stride: int,
+            padding: int,
+            dilation: int,
+        ) -> int:
             return (
                 input_size + 2 * padding - dilation * (kernel_size - 1) - 1
             ) // stride + 1
@@ -120,7 +132,7 @@ class _SmoothMaxPool2dFunction(torch.autograd.Function):
         return max_vals.view(x.size(0), x.size(1), output_h, output_w)
 
     @staticmethod
-    def backward(ctx, grad_output):  # type: ignore[override]
+    def backward(ctx, grad_output: torch.Tensor):  # type: ignore[override]
         N, C, H, W = ctx.input_shape
 
         if ctx.smooth_backward:
@@ -149,23 +161,25 @@ class _SmoothMaxPool2dFunction(torch.autograd.Function):
 
 
 class _SmoothDiffLayer(nn.Module):
-    def __init__(self, collect_stats=False, smooth_backward=False):
+    def __init__(
+        self, collect_stats: bool = False, smooth_backward: bool = False
+    ) -> None:
         super().__init__()
         self.collect_stats = collect_stats
         self.smooth_backward = smooth_backward
         self.register_buffer("grad_local_sum", None)
         self.register_buffer("n_samples", torch.tensor(0))
 
-    def reset_stats(self):
+    def reset_stats(self) -> None:
         self.grad_local_summed = None
         self.n_samples.zero_()  # type: ignore[union-attr]
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError("Must be implemented in subclass")
 
 
 class _SmoothReLU(_SmoothDiffLayer):
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         if self.grad_local_summed is None:
             # gradients are stored in the form of one sample:
             self.grad_local_summed = torch.zeros_like(x)
@@ -180,14 +194,21 @@ class _SmoothReLU(_SmoothDiffLayer):
 
 
 class _SmoothMaxPool2d(_SmoothDiffLayer):
-    def __init__(self, kernel_size=2, stride=2, padding=0, dilation=1, **kwargs):
+    def __init__(
+        self,
+        kernel_size: int | tuple[int, int] = 2,
+        stride: int | tuple[int, int] = 2,
+        padding: int | tuple[int, int] = 0,
+        dilation: int | tuple[int, int] = 1,
+        **kwargs,
+    ) -> None:
         super().__init__(**kwargs)
         self.kernel_size = kernel_size
         self.stride = stride
         self.padding = padding
         self.dilation = dilation
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         if self.grad_local_summed is None:
             # gradients are stored in the form of one *unfolded* sample:
             unfolded = F.unfold(
@@ -197,7 +218,12 @@ class _SmoothMaxPool2d(_SmoothDiffLayer):
                 padding=self.padding,
                 dilation=self.dilation,
             )
-            unfolded = unfolded.view(x.size(0), x.size(1), self.kernel_size**2, -1)
+            unfolded = unfolded.view(
+                x.size(0),
+                x.size(1),
+                self.kernel_size**2,  # type: ignore[operator]
+                -1,
+            )
             self.grad_local_summed = torch.zeros_like(unfolded)
         return _SmoothMaxPool2dFunction.apply(
             x,
@@ -212,7 +238,11 @@ class _SmoothMaxPool2d(_SmoothDiffLayer):
         )
 
 
-def set_smoothdiff_layer_mode(model, collect_stats=None, smooth_backward=None):
+def set_mode(
+    model: nn.Module,
+    collect_stats: bool | None = None,
+    smooth_backward: bool | None = None,
+) -> None:
     """Set the mode of all SmoothDiff layers in a model.
 
     Args:
@@ -233,7 +263,20 @@ def set_smoothdiff_layer_mode(model, collect_stats=None, smooth_backward=None):
                 module.smooth_backward = smooth_backward
 
 
-def _smooth_layer(layer):
+def reset_stats(model: nn.Module) -> None:
+    """Reset accumulated statistics in all SmoothDiff layers.
+
+    Call this to free memory after computing SmoothDiff explanations.
+
+    Args:
+        model: PyTorch model containing SmoothDiff layers.
+    """
+    for module in model.modules():
+        if isinstance(module, _SmoothDiffLayer):
+            module.reset_stats()
+
+
+def _smooth_layer(layer: nn.Module) -> nn.Module:
     if isinstance(layer, torch.nn.ReLU):
         return _SmoothReLU()
     if isinstance(layer, torch.nn.MaxPool2d):
@@ -246,14 +289,14 @@ def _smooth_layer(layer):
     return layer
 
 
-def _check_supported_layers(model: nn.Module):
+def _check_supported_layers(model: nn.Module) -> None:
     """Check whether all layers in a model are supported by SmoothDiff.
 
     Raises:
         ValueError: If an unsupported layer type is found.
     """
 
-    def _check_module(module, name="", is_root=False):
+    def _check_module(module: nn.Module, name: str = "", is_root: bool = False) -> None:
         has_children = len(list(module.children())) > 0
 
         # Only check leaf modules (no children) and skip the root
@@ -277,7 +320,7 @@ def _check_supported_layers(model: nn.Module):
     _check_module(model, is_root=True)
 
 
-def replace_nonlinear_layers(model):
+def prepare_model(model: nn.Module) -> nn.Module:
     """Replace ReLU and MaxPool2d layers with SmoothDiff equivalents.
 
     Creates a deep copy of the model and recursively replaces all ReLU and
@@ -295,7 +338,7 @@ def replace_nonlinear_layers(model):
     _check_supported_layers(model)
     model_copy = copy.deepcopy(model)
 
-    def _replace_in_module(module):
+    def _replace_in_module(module: nn.Module) -> None:
         for name, child in module.named_children():
             # First, recursively process children
             _replace_in_module(child)

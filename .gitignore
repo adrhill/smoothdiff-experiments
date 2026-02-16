@@ -58,7 +58,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
-uv.lock
+*.lock
 
 # Translations
 *.mo
