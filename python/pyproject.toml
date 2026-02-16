@@ -8,8 +8,8 @@ dependencies = [
     "torch>=2.7.1",
 ]
 
-[project.optional-dependencies]
-notebook = [
+[dependency-groups]
+examples = [
     "cmcrameri>=1.9",
     "ipykernel>=6.30.0",
     "matplotlib>=3.10.3",

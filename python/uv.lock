@@ -1112,8 +1112,8 @@ dependencies = [
     { name = "torch" },
 ]
 
-[package.optional-dependencies]
-notebook = [
+[package.dev-dependencies]
+examples = [
     { name = "cmcrameri" },
     { name = "ipykernel" },
     { name = "matplotlib" },
@@ -1124,17 +1124,18 @@ notebook = [
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "cmcrameri", marker = "extra == 'notebook'", specifier = ">=1.9" },
-    { name = "ipykernel", marker = "extra == 'notebook'", specifier = ">=6.30.0" },
-    { name = "matplotlib", marker = "extra == 'notebook'", specifier = ">=3.10.3" },
-    { name = "numpy", marker = "extra == 'notebook'", specifier = ">=2.3.2" },
-    { name = "pillow", marker = "extra == 'notebook'", specifier = ">=11.3.0" },
-    { name = "torch", specifier = ">=2.7.1" },
-    { name = "torchvision", marker = "extra == 'notebook'", specifier = ">=0.22.1" },
-    { name = "tqdm", marker = "extra == 'notebook'", specifier = ">=4.67.1" },
+requires-dist = [{ name = "torch", specifier = ">=2.7.1" }]
+
+[package.metadata.requires-dev]
+examples = [
+    { name = "cmcrameri", specifier = ">=1.9" },
+    { name = "ipykernel", specifier = ">=6.30.0" },
+    { name = "matplotlib", specifier = ">=3.10.3" },
+    { name = "numpy", specifier = ">=2.3.2" },
+    { name = "pillow", specifier = ">=11.3.0" },
+    { name = "torchvision", specifier = ">=0.22.1" },
+    { name = "tqdm", specifier = ">=4.67.1" },
 ]
-provides-extras = ["notebook"]
 
 [[package]]
 name = "stack-data"
