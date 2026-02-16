@@ -10,7 +10,7 @@ reset_counts!(m::MaxPoolAccumulator) = fill!(m.count, 0)
 samplingmode!(m::MaxPoolAccumulator, mode::Bool) = (m.sampling = mode; m)
 
 # Forward pass
-function (m::MaxPoolAccumulator)(x)
+function (m::MaxPoolAccumulator)(x::AbstractArray)
     pool = m.layer
     pdims = Flux.PoolDims(x, pool.k; padding = pool.pad, stride = pool.stride)
     y = maxpool(x, pdims)
